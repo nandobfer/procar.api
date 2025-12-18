@@ -111,19 +111,19 @@ router.get("/validate-number", async (request: Request, response: Response) => {
         response.status(500).send(error)
     }
 })
-router.post("/image", requireOrderId, async (request: OrderRequest, response: Response) => {
+router.post("/attachment", requireOrderId, async (request: OrderRequest, response: Response) => {
     try {
         const order = request.order!
         const files = request.files
         const data = JSON.parse(request.body.data) as Attachment[]
 
-        console.log("uploading images:", data)
+        console.log("uploading attachments:", data)
 
         if (!files || !data) {
             return response.status(400).send("Invalid files or data")
         }
 
-        const images: UploadedFile[] = []
+        const attachments: UploadedFile[] = []
 
         for (const [index, attachment] of data.entries()) {
             const file = files[`file${index}`]
@@ -131,10 +131,10 @@ router.post("/image", requireOrderId, async (request: OrderRequest, response: Re
                 return response.status(400).send(`File file${index} not found`)
             }
 
-            images.push(file as UploadedFile)
+            attachments.push(file as UploadedFile)
         }
 
-        await order.uploadImages(images, data)
+        await order.uploadAttachments(attachments, data)
 
         return response.json(order)
     } catch (error) {
@@ -143,17 +143,17 @@ router.post("/image", requireOrderId, async (request: OrderRequest, response: Re
     }
 })
 
-router.delete("/image", requireOrderId, async (request: OrderRequest, response: Response) => {
+router.delete("/attachment", requireOrderId, async (request: OrderRequest, response: Response) => {
     const attachment_id = request.query.attachment_id as string
     if (!attachment_id) {
         return response.status(400).send("attachment_id is required")
     }
 
-    console.log("deleting image:", attachment_id)
+    console.log("deleting attachment:", attachment_id)
 
     try {
         const order = request.order!
-        await order.deleteImage(attachment_id)
+        await order.deleteAttachment(attachment_id)
         return response.json(order)
     } catch (error) {
         console.log(error)
