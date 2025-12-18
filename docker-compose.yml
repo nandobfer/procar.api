@@ -5,7 +5,7 @@ services:
     image: nandoburgos/procar.api
     container_name: procar.api
     environment:
-      - PORT=4104
+      - PORT=4106
       - DATABASE_URL=mysql://boz:Ewhblt69%21%40%23@boz.app.br:3306/procar?connection_limit=20&socketTimeout=30
       - URL=https://api-procar.nandoburgos.dev
       - WEBSITE_URL=https://procar.nandoburgos.dev
@@ -13,7 +13,7 @@ services:
       - SMTP_USER=get_from_github_secrets
       - SMTP_PASS=get_from_github_secrets
     ports:
-      - "4104:4104"
+      - "4106:4106"
     network_mode: "host"
     restart: unless-stopped
     volumes:
