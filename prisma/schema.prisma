@@ -1,0 +1,41 @@
+datasource db {
+	provider = "mysql"
+	url = env("DATABASE_URL")
+}
+generator client {
+	provider = "prisma-client-js"
+	previewFeatures = ["fullTextSearch","fullTextIndex"]
+}
+
+model Order {
+    id                      String   @id @default(cuid())
+    number                  String   @unique
+    order_date              String
+    validity                String?
+    discount                Float
+    additional_charges      Float
+    notes                   String?  @db.Text
+    attachments             Json?
+    payment_terms           String?
+
+    customer                Customer @relation("CustomerOrders", fields: [customerId], references: [id])
+    customerId              String
+
+    items                   Json
+}
+
+model Customer {
+    id                      String   @id @default(cuid())
+    name                    String
+    email                   String?  @unique
+    cpf_cnpj                String?  @unique
+    rg_ie                   String?
+    address                 String?
+    neighborhood            String?
+    city                    String?
+    state                   String?
+    phone                   String?
+    cep                     String?
+
+    orders                  Order[]  @relation("CustomerOrders")
+}
