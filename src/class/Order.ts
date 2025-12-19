@@ -22,7 +22,9 @@ export interface Attachment {
     height: number
 }
 
-export type OrderForm = Omit<WithoutFunctions<Order>, "id" | "attachments"> & { attachments?: Attachment[] }
+export type OrderType = "budget" | "order"
+
+export type OrderForm = Omit<WithoutFunctions<Order>, "id" | "attachments" | "type"> & { attachments?: Attachment[]; type?: OrderType }
 
 export class Order {
     id: string
@@ -33,6 +35,7 @@ export class Order {
     additional_charges: number
     notes?: string
     payment_terms?: string
+    type: OrderType
 
     // json fields
     attachments: Attachment[]
@@ -140,6 +143,7 @@ export class Order {
         this.customerId = data.customerId
         this.customer = new Customer(data.customer)
         this.items = JSON.parse(data.items as string)
+        this.type = data.type as OrderType
     }
 
     async update(data: Partial<OrderForm>) {
@@ -154,6 +158,7 @@ export class Order {
                 discount: data.discount,
                 validity: data.validity ? data.validity.toString() : undefined,
                 number: data.number,
+                type: data.type,
                 customer: {
                     update: {
                         city: data.customer?.city,

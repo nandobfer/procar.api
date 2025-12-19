@@ -9,6 +9,7 @@ generator client {
 
 model Order {
     id                      String   @id @default(cuid())
+    type                    String   @default("budget")
     number                  String   @unique
     order_date              String
     validity                String?
