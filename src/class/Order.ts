@@ -135,6 +135,7 @@ export class Order {
         this.discount = data.discount
         this.attachments = data.attachments ? JSON.parse(data.attachments as string) : []
         this.payment_terms = data.payment_terms || undefined
+        this.validity = data.validity ? Number(data.validity) : undefined
 
         this.customerId = data.customerId
         this.customer = new Customer(data.customer)
@@ -205,9 +206,9 @@ export class Order {
 
     async exportPdf() {
         const fields: PdfField[] = [
-            { name: "order_number", value: this.number },
-            { name: "order_date", value: this.order_date.toLocaleString("pt-br") },
-            { name: "order_validity", value: this.validity?.toLocaleString("pt-br") },
+            { name: "order_number", value: `Orçamento nº: ${this.number.padStart(2, "0")}` },
+            { name: "order_date", value: "Emitido em: " + new Date(this.order_date).toLocaleDateString("pt-br") },
+            { name: "order_validity", value: this.validity ? "Válido até: " + new Date(this.validity).toLocaleDateString("pt-br") : undefined },
             { name: "customer_name", value: this.customer.name },
             { name: "customer_email", value: this.customer.email },
             { name: "customer_cpf_cnpj", value: this.customer.cpf_cnpj },
@@ -219,10 +220,10 @@ export class Order {
             { name: "customer_phone", value: this.customer.phone },
             { name: "customer_cep", value: this.customer.cep },
 
-            { name: "order_discount", value: currencyMask(this.discount) },
-            { name: "order_additional_charges", value: currencyMask(this.additional_charges) },
-            { name: "order_subtotal", value: currencyMask(this.getSubtotal()) },
-            { name: "order_total", value: currencyMask(this.getTotal()) },
+            { name: "order_discount", value: "DESCONTO: " + currencyMask(this.discount) },
+            { name: "order_additional_charges", value: "ACRÉSCIMOS: " + currencyMask(this.additional_charges) },
+            { name: "order_subtotal", value: "SUBTOTAL: " + currencyMask(this.getSubtotal()) },
+            { name: "order_total", value: "TOTAL: " + currencyMask(this.getTotal()) },
 
             { name: "order_payment_terms", value: this.payment_terms },
             { name: "order_notes", value: this.notes },
