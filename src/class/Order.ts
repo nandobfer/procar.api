@@ -228,10 +228,11 @@ export class Order {
             { name: "order_discount", value: "DESCONTO: " + currencyMask(this.discount) },
             { name: "order_additional_charges", value: "ACRÉSCIMOS: " + currencyMask(this.additional_charges) },
             { name: "order_subtotal", value: "SUBTOTAL: " + currencyMask(this.getSubtotal()) },
-            { name: "order_total", value: "TOTAL: " + currencyMask(this.getTotal()) },
+            { name: "order_total", value: "TOTAL: " + currencyMask(this.getTotal()), bold: true },
 
             { name: "order_payment_terms", value: this.payment_terms },
             { name: "order_notes", value: this.notes },
+            { name: "order_signature", value: this.customer.name, bold: true },
         ]
 
         for (const [index, item] of this.items.entries()) {
