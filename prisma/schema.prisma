@@ -40,3 +40,9 @@ model Customer {
 
     orders                  Order[]  @relation("CustomerOrders")
 }
+
+model Item {
+    id                      String   @id @default(cuid())
+    description             String   @unique
+    unit_price              Float
+}

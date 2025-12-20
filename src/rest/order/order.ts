@@ -7,7 +7,7 @@ import { UploadedFile } from "express-fileupload"
 
 const router: Router = express.Router()
 
-router.use("/item", requireOrderId, item)
+router.use("/item", item)
 
 router.get("/", async (request: Request, response: Response) => {
     const order_id = request.query.order_id as string | undefined
