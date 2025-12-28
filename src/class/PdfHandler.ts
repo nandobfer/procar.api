@@ -26,11 +26,13 @@ export class PdfHandler {
     fields: PdfField[]
     fullpath: string
 
+    pagesFields?: PdfField[][]
     document?: PDFDocument
     form?: PDFForm
 
     constructor(data: PdfConstructor) {
         this.template_path = data.template_path
+        this.pagesFields = data.pagesFields
         this.output_dir = data.output_dir
         this.filename = data.filename
         this.font = data.font
@@ -45,15 +47,26 @@ export class PdfHandler {
         this.form = this.document.getForm()
     }
 
-    async fillForm(fieldsToDelete: string[] = []) {
-        if (!this.form || !this.document) {
-            await this.init()
+    async fillPagesFields() {
+        if (!this.pagesFields || this.pagesFields.length === 0) {
+            return
         }
 
-        if (!this.form) {
-            throw "Falha na inicialização do formulário"
-        }
+        console.log("Filling additional pages fields:")
+        console.log(this.pagesFields)
 
+        for (const [pageIndex, pageFields] of this.pagesFields.entries()) {
+            const page = await PDFDocument.load(readFileSync(this.template_path))
+            const pageForm = page.getForm()
+            await this.fillFields(page, pageForm, [...this.fields, ...pageFields])
+            await page.save()
+
+            const [copiedPage] = await this.document!.copyPages(page, [0])
+            this.document!.addPage(copiedPage)
+        }
+    }
+
+    async fillFields(document: PDFDocument, form: PDFForm, fields: PdfField[]) {
         let customFontRegular
         let customFontBold
 
@@ -71,28 +84,29 @@ export class PdfHandler {
 
         // Debug form fields
         console.log("=== DEBUG: Form Fields ===")
-        const formFields = this.form.getFields()
+        const formFields = form.getFields()
         formFields.forEach((field, index) => {
             console.log(`${index + 1}. ${field.getName()} - Type: ${field.constructor.name}`)
         })
         console.log("=== END DEBUG ===")
 
-        for (const field of this.fields) {
+        for (const field of fields) {
+            console.log(field)
             try {
                 // image field
                 if (field.type === "image") {
                     const endpoint = field.value!.split("static/").pop()
                     const imageBytes = readFileSync(`static/${endpoint}`)
                     const extension = endpoint!.split(".").pop()
-                    const image = extension === "png" ? await this.document!.embedPng(imageBytes) : await this.document!.embedJpg(imageBytes)
-                    const button = this.form!.getButton(field.name)
+                    const image = extension === "png" ? await document.embedPng(imageBytes) : await document.embedJpg(imageBytes)
+                    const button = form.getButton(field.name)
                     button.setImage(image)
                     continue
                 }
 
                 // checkbox field
                 if (field.type === "checkbox") {
-                    const checkbox = this.form!.getCheckBox(field.name)
+                    const checkbox = form.getCheckBox(field.name)
                     if (field.value === "true") {
                         checkbox.check()
                     } else {
@@ -103,7 +117,7 @@ export class PdfHandler {
 
                 // text field
                 if (!field.type || field.type === "text") {
-                    const formfield = this.form!.getTextField(field.name)
+                    const formfield = form.getTextField(field.name)
                     formfield.setText(field.value)
                     if (this.font) {
                         formfield.updateAppearances(field.bold ? customFontBold! : customFontRegular!)
@@ -116,6 +130,20 @@ export class PdfHandler {
                 console.log(field.value)
             }
         }
+    }
+
+    async fillForm(fieldsToDelete: string[] = []) {
+        if (!this.form || !this.document) {
+            await this.init()
+        }
+
+        if (!this.form || !this.document) {
+            throw "Falha na inicialização do formulário"
+        }
+
+        const firstPageFields = this.pagesFields?.shift() || []
+
+        await this.fillFields(this.document, this.form, [...this.fields, ...firstPageFields])
 
         for (const fieldName of fieldsToDelete) {
             try {
@@ -127,30 +155,11 @@ export class PdfHandler {
             }
         }
 
-        await this.save()
-
-        // const inputPath = path.join(this.output_dir, this.filename)
-        // const flattenedPath = path.join(this.output_dir, this.filename)
-        // await this.flattenWithGhostscript(inputPath, flattenedPath)
-    }
-
-    async flattenWithGhostscript(inputPath: string, outputPath: string) {
-        try {
-            const command = `gs -dSAFER -dBATCH -dNOPAUSE -sDEVICE=pdfwrite -dAutoRotatePages=/None -sOutputFile="${outputPath}" "${inputPath}"`
-
-            console.log(`Running Ghostscript command: ${command}`)
-            const { stdout, stderr } = await execAsync(command)
-
-            if (stderr) {
-                console.log(`Ghostscript stderr: ${stderr}`)
-            }
-
-            console.log(`PDF flattened successfully: ${outputPath}`)
-            return true
-        } catch (error) {
-            console.error(`Ghostscript error: ${error}`)
-            return false
+        if (this.pagesFields && this.pagesFields.length > 0) {
+            await this.fillPagesFields()
         }
+
+        await this.save()
     }
 
     async save() {

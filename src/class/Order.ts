@@ -44,6 +44,8 @@ export class Order {
     customerId?: string
     customer: Customer
 
+    static maxItems = 15
+
     static async list() {
         const result = await prisma.order.findMany({ include: order_include })
         return result.map((order) => new Order(order))
@@ -235,20 +237,35 @@ export class Order {
             { name: "order_signature", value: this.customer.name, bold: true },
         ]
 
-        for (const [index, item] of this.items.entries()) {
-            fields.push(
-                { name: `item_${index}`, value: (index + 1).toString() },
-                { name: `quantity_${index}`, value: item.quantity.toString() },
-                { name: `description_${index}`, value: item.description },
-                { name: `price_${index}`, value: currencyMask(item.unit_price) }
-            )
+        const pagesNumber = Math.ceil(this.items.length / Order.maxItems)
+        const pagesFields: PdfField[][] = []
+        const itemsPool = [...this.items]
+
+        for (let i = 0; i < pagesNumber; i++) {
+            const pageItems = itemsPool.splice(0, Order.maxItems)
+            const pageFields: PdfField[] = []
+
+            for (const [index, item] of pageItems.entries()) {
+                pageFields.push(
+                    { name: `item_${index}`, value: (i * Order.maxItems + index + 1).toString() },
+                    { name: `quantity_${index}`, value: item.quantity.toString() },
+                    { name: `description_${index}`, value: item.description },
+                    { name: `price_${index}`, value: currencyMask(item.unit_price) }
+                )
+            }
+
+            pagesFields.push(pageFields)
         }
+
+        const output_dir = "static/orders"
+        const filename = `Pedido_${this.customer.name.replace(/\s+/g, "_")}_${this.number}.pdf`
 
         const pdf = new PdfHandler({
             fields,
             template_path: "src/templates/procar_form.pdf",
-            output_dir: "static/orders",
-            filename: `Pedido_${this.customer.name.replace(/\s+/g, "_")}_${this.number}.pdf`,
+            output_dir: output_dir,
+            filename: filename,
+            pagesFields: pagesFields,
         })
 
         await pdf.fillForm()
